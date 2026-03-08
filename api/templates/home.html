@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<!-- saved from url=(0091)https://p.w3layouts.com/demos_new/28-12-2016/lets_party-demo_Free/1546064818/web/index.html -->
+<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>尾牙抽獎</title> 
+
+<link rel="stylesheet" href="/static/css/bootstrap.min.css"/>
+<link rel="stylesheet" href="/static/css/odometer-theme-slot-machine.css" />
+<link rel="stylesheet" href="/static/css/game_main.css" />
+<!--script type="text/javascript" src="/static/js/basicFunction.js"></script-->
+<script type="text/javascript" src="/static/js/jquery.min.js"></script>
+<script type="text/javascript" src="/static/js/odometer.js"></script>
+	
+<!-- excel download -->	
+<script type="text/javascript" src="/static/js/lodash.js"></script>
+<script type="text/javascript" src="/static/js/jszip.min.js"></script>
+<script type="text/javascript" src="/static/js/excel-builder.dist.js"></script>	
+<style> 
+</style>
+ 
+</head>
+<body>
+    
+	<div id="remaining_count" value="" style="display: none;"></div>
+    <div id="awardCurrentId" value="" style="display: none;"></div>
+    
+	<div id="fireworks" class="w3ls-banner w3-agilefireworks jarallax"  style=' background-repeat: no-repeat; background-image: url("/static/img/170616260440593_P23471670.jpg"); position: fixed; top: 0px; left: 0px; width: 100%; height: 110%; overflow: hidden;   transition: transform 0s linear -1ms, -webkit-transform 0s linear -1ms;  visibility: visible;z-index: -280;'>
+	    <!--div class="banner-text" style="height: 5%;"></div-->
+		<div class="banner-text" style="height:200%  ;margin-top:-150px">
+			<div class=" " style="height:100;margin-top:-60px" id="AwardList"></div>
+			<h2 id="awardDescription" style="font-family: 'Times New Roman';font-size: 60px;margin-top:20px;"></h2> 
+ 			<div id="odometer" class="odometer" style="margin-top: px">99999999</div>
+			<img id="getLuckyGuy" onclick="getLuckyGuy()" src="/static/img/slot.png" alt=" " style="display: none;cursor: pointer; position: relative;margin-left:20px;z-index: 1289; " width="120" height="140">
+			<h2 style="font-family: 'Times New Roman';font-size: 70px;height:80px;" id="result_name"></h2>
+			<div style=" width:98%;margin: auto;margin-top:10px;" id="alreadyGotMember"></div>
+			
+
+		</div> 
+ 	</div>	    
+	<div onclick="resetAward()" value="" style="width:10px;height:10px; background-color: #EBEBEB;"></div>
+	<div onclick="downloadExcel()" value="" style="margin-top:-10px;margin-left:99%;width:10px;height:10px; background-color: #17202A;"><a href="#" id="downloader" download="result.xlsx">1</a></div>
+<script> 
+var ajaxUrlPort = '{{data["ajaxUrlPort"]}}'
+//var ajaxUrlPort = '10.56.211.30:81'
+var query = window.location.search.substring(1);
+//var qs = parse_query_string(query);
+var awardCurrentId=''
+var award_status=''
+
+
+//awardlist = {{data['awardlist']}}
+
+function changeAward(awardid){
+	window.location.href = "?awardid="+awardid;
+	
+}
+
+$('#awardCurrentId').val(awardCurrentId)  
+
+$( document ).ready(function() {
+	 getAwardList()
+	 getAward()
+	 getAlreadyGotMember()
+	//$('#result_name').html('')
+	window.odometerOptions = {
+	  format: 'd',
+	  duration: 5000,
+	}; 
+	//setAwardList()
+});
+
+var awardlist = JSON.parse(decodeHtml("{{data['awardlist']}}").replace(/'/g, '"'))
+console.log('awardlist:')
+console.log(awardlist)
+function getAwardList(){
+	htmlString = ''
+	for(i = 0 ; i < Object.keys(awardlist).length ; i++){
+		//console.log(awardlist[i])
+		id = awardlist[i]['id']
+		name = awardlist[i]['name']
+		description = awardlist[i]['description']
+		quantity = awardlist[i]['quantity']
+		already_got = awardlist[i]['already_got']
+		status = awardlist[i]['status']
+		//console.log(quantity+','+already_got)
+		if(quantity > already_got){
+			htmlString = htmlString+'<button id="awardButton'+id+'" onclick="changeAward('+id+')" type="button" class="btn btn-danger btn-circle btn-xl cc1" style="cursor: pointer;position: relative;z-index: 1289;">'+name+'</button>&nbsp;&nbsp;';
+		}else if(quantity == already_got){
+			htmlString = htmlString+'<button id="awardButton'+id+'" onclick="changeAward('+id+')" type="button" class="btn btn-danger btn-circle btn-xl cc2" style="cursor: pointer;position: relative;z-index: 1289;">'+name+'</button>&nbsp;&nbsp;';
+		}
+	}
+	$('#AwardList').html(htmlString)
+}
+
+var award = JSON.parse(decodeHtml("{{data['award']}}").replace(/'/g, '"'))
+console.log('award:')
+console.log(award)
+
+awardid = {{data['awardid']}} 
+console.log('awardid:'+awardid)
+awardCurrentId=awardid
+function getAward(){
+	name = award['name']
+	description = award['description']
+	quantity = award['quantity']
+	already_got = award['already_got']
+	award_status = award['status'] 
+	remaining_string = '，已全數抽完 !'
+	remaining_count = quantity-already_got	
+	
+	if(remaining_count > 0){
+		remaining_string = '，還有'+(remaining_count)+' 個機會!'
+		$('#odometer').show();
+		$('#getLuckyGuy').show();
+	}else{                
+		$('#odometer').hide();
+		$('#getLuckyGuy').hide();
+	}
+	$('#remaining_count').val(remaining_count)
+	awardDescription = ''+name+'，共<spin id="quantity">'+quantity+'</spin>名<spin id="remaining">'+remaining_string+'</spin><br><span style="color:#00FFFF;font-size: 50px;">'+description+'</span>';
+	$('#awardDescription').html(awardDescription)
+	$('#awardCurrentId').val(awardCurrentId)
+	
+}
+
+var alreadyGotMember = JSON.parse(decodeHtml("{{data['alreadyGotMember']}}").replace(/'/g, '"'))
+console.log('alreadyGotMember:')
+console.log(alreadyGotMember)
+function getAlreadyGotMember(){	
+	html = ''
+	if(Object.keys(alreadyGotMember).length > 0){
+		for(i = 0 ; i < Object.keys(alreadyGotMember).length ; i++){
+			PERNR = alreadyGotMember[i]['PERNR']
+			name  = alreadyGotMember[i]['name']
+			department  = alreadyGotMember[i]['department'] 
+			no = i+1
+			if(no > 1 && (no-1)%5 == 0) {
+				html=html+'<br><br>'
+			}
+			html=html+'<div class="btn-group" role="group" aria-label="add_already_got_member">'+
+			'<button  class="btn btn-light btn-lg" style="pointer-events:;z-index: 1289;position: relative;" onclick="deleteLuckyGuy(\''+PERNR+'\',\''+name+'\')">'+no+'</button>'+
+			'<button  class="btn btn-primary btn-lg active" style="pointer-events: none;">'+department+'</button>'+
+			'<button type="button" class="btn btn-light btn-lg" style="pointer-events: none;" >'+name+'</button></div>&nbsp;&nbsp;&nbsp;'                
+		}                
+	}
+	$('#alreadyGotMember').html(html)
+}
+
+function decodeHtml(html) {
+    var txt = document.createElement("textarea");
+    txt.innerHTML = html;
+    return txt.value;
+} 
+
+function getLuckyGuy(){
+    $('#getLuckyGuy').hide();
+	$('#result_name').html('') 
+	$('.odometer').html(99999999);
+    
+    awardid = $('#awardCurrentId').val()
+    $.ajax({
+		url: ajaxUrlPort+"getLuckyGuy",
+	    	//url: "https://game2-black.vercel.app/getLuckyGuy",
+		type: "GET",
+		dataType: 'json',
+		data:{awardid:awardid},
+        contentType: "application/json; charset=utf-8",
+		success: function (data) {
+			console.log('getLuckyGuy:')
+			console.log(data)
+            member_award = data['member_award']
+            for(i = 0 ; i < Object.keys(member_award).length ; i++){
+                PERNR = member_award[i]['PERNR']
+                name = member_award[i]['name']
+                department = member_award[i]['department']
+            }
+            quantity = $('#quantity').html()
+            remaining_count=$('#remaining_count').val()
+            remaining_count = remaining_count-Object.keys(member_award).length
+            
+            
+            //alert('remaining_count1:'+remaining_count1+ ',quantity:'+quantity+',remaining_count:'+remaining_count+' '+(quantity - $('#remaining_count').val()-1))
+            $('#remaining_count').val(remaining_count)
+             
+            if(remaining_count > 0){
+                remaining_string = '，還有'+remaining_count+'個機會!'
+            }else{
+                remaining_string = '，已全數抽完 !';
+            }
+            $('#remaining').html(remaining_string)
+            
+            setTimeout(function(){ 
+                //alert(result)
+                //$('.odometer').html(18017220);
+                $('.odometer').html(PERNR); 
+                setTimeout(function() {                    
+                    if(award_status == 1){
+                    $('#result_name').html('恭喜 <span style="color:#98FB98;">'+department+'</span> <span style="color:orange;">'+name+'</span> 獲獎 !!')
+                    }else if(award_status == 2){
+                        $('#result_name').html('恭喜獲獎 !!')
+                    }
+                    $('.w3-agilefireworks').fireworks();
+                    add_already_got_member(member_award)
+                    if(remaining_count == 0){
+                        $('#odometer').hide();
+                        //$('#getLuckyGuy').hide();
+                    }else{
+
+                        $('#getLuckyGuy').show();
+                    }
+                    //setTimeout(function() { 
+                         //fireworks_stop() 
+                         //$('.w3-agilefireworks').fireworks().destroy()
+                    //}, 3000);	
+                }, 2500);
+               
+              }, 100);
+		},				
+		error: function(xhr) {
+		  alert('getLuckyGuy 發生錯誤:'+JSON.stringify(xhr)); 
+		}
+	});     
+}
+
+
+
+function add_already_got_member(new_member){
+    html = $('#alreadyGotMember').html()
+    count = (html.match(/add_already_got_member/g) || []).length; 
+    if(Object.keys(new_member).length > 0){
+        for(i = 0 ; i < Object.keys(new_member).length ; i++){
+            PERNR = new_member[i]['PERNR']
+            name  = new_member[i]['name']
+            department  = new_member[i]['department'] 
+            no = i+1+count
+            if(no > 1 && (no-1)%5 == 0) {
+                html=html+'<br><br>'
+            }
+            html=html+'<div class="btn-group" role="group" aria-label="add_already_got_member">'+
+            '<button  class="btn btn-light btn-lg" style="pointer-events:;position: relative;z-index: 1289;" onclick="deleteLuckyGuy(\''+PERNR+'\',\''+name+'\')">'+no+'</button>'+
+            '<button  class="btn btn-primary active btn-lg" style="pointer-events: none;" >'+department+'</button>'+
+            '<button type="button" class="btn btn-light btn-lg" style="pointer-events: none;" >'+name+'</button></div>&nbsp;&nbsp;&nbsp;'                
+        }                
+    }
+    $('#alreadyGotMember').html(html)
+}
+
+/*
+function getAwardList(){
+    htmlString = ''
+    $.ajax({
+		url: ajaxUrlPort+"getAwardList",
+		type: "GET",
+		dataType: 'json',
+		//data:{city:city},
+		contentType: "application/json; charset=utf-8",
+		success: function (data) {
+			console.log('getAwardList:')
+			console.log(data)
+			awardlist = data['awardlist']
+			htmlData = ''
+			for(i = 0 ; i < Object.keys(awardlist).length ; i++){
+                //console.log(awardlist[i])
+                id = awardlist[i]['id']
+                name = awardlist[i]['name']
+                description = awardlist[i]['description']
+                quantity = awardlist[i]['quantity']
+                already_got = awardlist[i]['already_got']
+                status = awardlist[i]['status']
+                console.log(quantity+','+already_got)
+                if(quantity > already_got){
+                    htmlString = htmlString+'<button id="awardButton'+id+'" onclick="getAward('+id+')" type="button" class="btn btn-danger btn-circle btn-xl cc1" style="cursor: pointer;position: relative;z-index: 1289;">'+name+'</button>&nbsp;&nbsp;';
+                }else if(quantity == already_got){
+                    htmlString = htmlString+'<button id="awardButton'+id+'" onclick="getAward('+id+')" type="button" class="btn btn-danger btn-circle btn-xl cc2" style="cursor: pointer;position: relative;z-index: 1289;">'+name+'</button>&nbsp;&nbsp;';
+                }
+			}
+			$('#AwardList').html(htmlString) 
+		},				
+		error: function(xhr) {
+		  alert('getAwardList 發生錯誤:'+JSON.stringify(xhr)); 
+		}
+	});
+}
+*/ 
+/*
+function getAward(awardid){ 
+    //window.location.href = "/2022banquet_lottery/index.html?awardid="+awardid;
+	window.location.href = "/index/awardid="+awardid;
+    //location.reload()
+	
+}
+*/
+
+window.odometerOptions = {
+  format: 'd',
+  duration: 5000,
+}; 
+/*
+function fireworks_stop(){
+	var container = document.getElementById("fireworks");
+	var content = container.innerHTML;
+	 
+	container.innerHTML= content; 
+	
+   //this line is to watch the result in console , you can remove it later	
+	console.log("Refreshed"); 
+}*/
+
+
+function resetAward(){
+	if(confirm('你確定重置得獎名單嗎？')){
+		$.ajax({
+			url: ajaxUrlPort+"resetAward",
+			type: "GET",
+			dataType: 'json',
+			data:{},
+			contentType: "application/json; charset=utf-8",
+			success: function (data) {
+				result = data['result']
+				if(result == 0) {
+					alert('重置得獎名單成功!');
+					location.reload();
+				}	
+			},
+			error: function(xhr) {
+			  alert('resetAward 發生錯誤:'+JSON.stringify(xhr)); 
+			}
+		});
+	}	
+}
+
+function deleteLuckyGuy(PERNR,name) {
+	//alert(PERNR+','+name)
+	if(confirm('取消 '+name+'('+PERNR+') 抽中獎機會嗎?')){
+		$.ajax({
+		url: ajaxUrlPort+"deleteLuckyGuy",
+		type: "GET",
+		dataType: 'json',
+		data:{PERNR:PERNR},
+		contentType: "application/json; charset=utf-8",
+		success: function (data) {
+			console.log('deleteLuckyGuy:')
+			console.log(data)
+			result = data['result']
+			if(result == 0) {
+				alert('取消成功!');
+				location.reload();
+			}	
+			 
+		},				
+		error: function(xhr) {
+		  alert('deleteLuckyGuy 發生錯誤:'+JSON.stringify(xhr)); 
+		}
+	});
+	}
+}
+
+var awardResult = JSON.parse(decodeHtml("{{data['awardResult']}}").replace(/'/g, '"'))
+console.log('awardResult:')
+console.log(awardResult)
+downloadExcel()
+
+function downloadExcel(){  
+	var workbook = ExcelBuilder.Builder.createWorkbook();
+	var worksheet = workbook.createWorksheet({ name: 'result' });
+	var stylesheet = workbook.getStyleSheet(); 
+	var originalData = JSON.parse(decodeHtml("{{data['awardResult']}}").replace(/'/g, '"'))
+	var albumTable = new ExcelBuilder.Table(); 
+	albumTable.setReferenceRange([1, 1, 1, 1, 1, 1], [7, originalData.length]);
+	albumTable.setTableColumns(['獎項', '獎品', '總數量','姓名', '工號','單位','時間']);
+
+	worksheet.sheetView.showGridLines = false;
+	worksheet.setData(originalData);
+	workbook.addWorksheet(worksheet);
+	worksheet.addTable(albumTable);
+	workbook.addTable(albumTable);
+	ExcelBuilder.Builder.createFile(workbook).then(function (data) {
+		if('download' in document.createElement('a')){ 
+			$("#downloader").attr({
+				href: "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,"+ data
+			});
+		} else { 
+			Downloadify.create('downloader',{
+				filename: function(){
+					return "result.xlsx";
+				},
+				data: function(){
+					return data;
+				}, 
+				//swf: 'downloadify/media/downloadify.swf',
+				//downloadImage: 'downloadify/images/download.png',
+				width: 100,
+				dataType: 'base64',
+				height: 30,
+				transparent: true,
+				append: false
+			});
+		}
+	}); 
+}	
+/*
+function deleteChild() {
+	var e = document.querySelector("ul");
+	e.innerHTML = "";
+} */
+</script>
+
+
+<link type="text/css" href="/static/css/style.css" rel="stylesheet" media="all"> 
+<script type="text/javascript" src="/static/js/jquery.fireworks.js"></script>
+  <script>
+		setTimeout(function() {
+			//$('.w3-agilefireworks').fireworks();   
+		});
+		
+
+	</script>
+ 
+</body> 
+ </html>
