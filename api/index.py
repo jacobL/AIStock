@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
@@ -8,9 +8,24 @@ from app.auth import hash_password, verify_password, create_token
 #uvicorn index:app --host 127.0.0.1 --port 81 --reload
 app = FastAPI()
 
-@app.get("/")
-def read_root():
-    return {"hello": "world"}
+# 指定 templates 目錄
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request):
+    
+    data = {
+        "message": "Hello FastAPI",
+        "name": "Jacob"
+    }
+
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "data": data
+        }
+    )
 
 def get_db():
     db = SessionLocal()
@@ -54,31 +69,5 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         "access_token": token,
         "token_type": "bearer"
     }
-=======
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-import uvicorn
-
-app = FastAPI()
-
-# 指定 templates 目錄
-templates = Jinja2Templates(directory="templates")
-
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    
-    data = {
-        "message": "Hello FastAPI",
-        "name": "Jacob"
-    }
-
-    return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
-            "data": data
-        }
-    )
-#uvicorn index:app --host 127.0.0.1 --port 81 --reload
->>>>>>> 0ee763188f6ecfd99740dbd193ba2a99443d8418
+ 
+#uvicorn index:app --host 127.0.0.1 --port 81 --reload 
